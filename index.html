@@ -249,6 +249,15 @@
       text-transform: uppercase;
     }
 
+    /* Mencegah kotak biru kaku saat autocomplete/autofill */
+    .inline-form input:-webkit-autofill,
+    .inline-form input:-webkit-autofill:hover, 
+    .inline-form input:-webkit-autofill:focus, 
+    .inline-form input:-webkit-autofill:active {
+      transition: background-color 5000s ease-in-out 0s;
+      -webkit-text-fill-color: #1e293b !important;
+    }
+
     .inline-form input::placeholder {
       color: #94a3b8;
       letter-spacing: normal;
@@ -274,11 +283,11 @@
     }
 
     .error-msg {
-      color: #dc2626;
-      font-size: 1rem;
+      color: #64748b; /* Warna abu-abu klasik */
+      font-size: 0.95rem;
       margin-top: 4px;
       min-height: 24px;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     /* STATS on Landing */
@@ -1152,12 +1161,12 @@
       const errorMsg = document.getElementById('login-error');
 
       if (pinInput === "") {
-        errorMsg.textContent = "⚠️ Kodenya belum dimasukkan! Silakan ketik kode unik Anda.";
+        errorMsg.textContent = "Kode unik belum dimasukkan.";
         return;
       }
 
       if (pinInput.length < 2) {
-        errorMsg.textContent = "⚠️ Kode unik yang Anda masukkan tidak valid (terlalu pendek).";
+        errorMsg.textContent = "Kode unik tidak valid.";
         return;
       }
 
@@ -1175,7 +1184,7 @@
         // Fallback berdasarkan NPM
         userObj = allData.find(u => u.stampRow[npmColumnIndex] === pinInput);
         if (!userObj) {
-          errorMsg.textContent = "❌ Sistem belum siap. Coba refresh halaman!";
+          errorMsg.textContent = "Sistem belum siap. Coba refresh halaman.";
           return;
         }
       }
@@ -1187,7 +1196,7 @@
         showPage('page-dashboard');
       } else {
         localStorage.removeItem('stampHunterPin');
-        errorMsg.textContent = "❌ Kode yang dimasukkan tidak sesuai. Silakan periksa kembali!";
+        errorMsg.textContent = "Kode tidak valid atau tidak ditemukan.";
       }
     }
 
