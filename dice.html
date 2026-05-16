@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8faff;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -650,10 +650,39 @@
                 max-height: 250px;
             }
         }
-    </style>
+    
+    /* Hide scrollbar, keep scrolling enabled */
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
+    html, body { overflow-y: auto; overflow-x: hidden; }
+  
+  /* ── DotGrid Background ── */
+  #dg-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  #dg-bg canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Ensure page content sits above DotGrid */
+  body > *:not(#dg-bg) { position: relative; z-index: 1; }
+
+  </style>
 </head>
 
 <body>
+  <!-- DotGrid Background -->
+  <div id="dg-bg"></div>
+
     <div class="container">
         <div id="mainPage">
             <h1>Praktikum Menggambar Teknik</h1>
@@ -1157,7 +1186,151 @@
             }
         });
     </script>
-    </body>
+    
+  <!-- GSAP for DotGrid -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+  // ====== DotGrid — Vanilla JS (ported from React Bits) ======
+  (function initDotGrid() {
+    const container = document.getElementById('dg-bg');
+    if (!container) return;
+
+    const CFG = {
+      dotSize      : 7,
+      gap          : 26,
+      baseColor    : '#dbeafe',
+      activeColor  : '#2563eb',
+      proximity    : 130,
+      speedTrigger : 90,
+      shockRadius  : 210,
+      shockStrength: 4,
+      maxSpeed     : 5000,
+      resistance   : 750,
+      returnDuration: 1.5
+    };
+
+    function hexToRgb(hex) {
+      const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+      return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : {r:0,g:0,b:0};
+    }
+    const baseRgb   = hexToRgb(CFG.baseColor);
+    const activeRgb = hexToRgb(CFG.activeColor);
+
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    let dots = [];
+    const pr = { x: -9999, y: -9999, vx:0, vy:0, speed:0, lastTime:0, lastX:0, lastY:0 };
+
+    const circlePath = new Path2D();
+    circlePath.arc(0, 0, CFG.dotSize / 2, 0, Math.PI * 2);
+
+    function buildGrid() {
+      const w = window.innerWidth, h = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width  = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const cell = CFG.dotSize + CFG.gap;
+      const cols = Math.floor((w + CFG.gap) / cell);
+      const rows = Math.floor((h + CFG.gap) / cell);
+      const startX = ((w - (cell*cols - CFG.gap)) / 2) + CFG.dotSize / 2;
+      const startY = ((h - (cell*rows - CFG.gap)) / 2) + CFG.dotSize / 2;
+
+      if (typeof gsap !== 'undefined') dots.forEach(d => gsap.killTweensOf(d));
+      dots = [];
+      for (let r = 0; r < rows; r++)
+        for (let c = 0; c < cols; c++)
+          dots.push({ cx: startX + c*cell, cy: startY + r*cell, xOffset:0, yOffset:0, _applied:false });
+    }
+
+    const proxSq = CFG.proximity * CFG.proximity;
+    function draw() {
+      const w = canvas.width / (window.devicePixelRatio||1);
+      const h = canvas.height / (window.devicePixelRatio||1);
+      ctx.clearRect(0, 0, w, h);
+      for (const dot of dots) {
+        const ox = dot.cx + dot.xOffset, oy = dot.cy + dot.yOffset;
+        const dx = dot.cx - pr.x, dy = dot.cy - pr.y;
+        const dsq = dx*dx + dy*dy;
+        let fillStyle = CFG.baseColor;
+        if (dsq <= proxSq) {
+          const t = 1 - Math.sqrt(dsq) / CFG.proximity;
+          fillStyle = `rgb(${Math.round(baseRgb.r+(activeRgb.r-baseRgb.r)*t)},${Math.round(baseRgb.g+(activeRgb.g-baseRgb.g)*t)},${Math.round(baseRgb.b+(activeRgb.b-baseRgb.b)*t)})`;
+        }
+        ctx.save(); ctx.translate(ox, oy); ctx.fillStyle = fillStyle; ctx.fill(circlePath); ctx.restore();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    function throttle(fn, ms) {
+      let last = 0;
+      return function(...args) { const now = performance.now(); if (now - last >= ms) { last=now; fn.apply(this,args); } };
+    }
+
+    const onMove = throttle(e => {
+      const now = performance.now();
+      const dt = pr.lastTime ? now - pr.lastTime : 16;
+      const dx = e.clientX - pr.lastX, dy = e.clientY - pr.lastY;
+      let vx = (dx/dt)*1000, vy = (dy/dt)*1000;
+      let speed = Math.hypot(vx, vy);
+      if (speed > CFG.maxSpeed) { const s=CFG.maxSpeed/speed; vx*=s; vy*=s; speed=CFG.maxSpeed; }
+      pr.lastTime=now; pr.lastX=e.clientX; pr.lastY=e.clientY;
+      pr.vx=vx; pr.vy=vy; pr.speed=speed;
+      pr.x=e.clientX; pr.y=e.clientY;
+      if (typeof gsap === 'undefined') return;
+      for (const dot of dots) {
+        const dist = Math.hypot(dot.cx - pr.x, dot.cy - pr.y);
+        if (speed > CFG.speedTrigger && dist < CFG.proximity && !dot._applied) {
+          dot._applied = true;
+          gsap.killTweensOf(dot);
+          gsap.to(dot, {
+            xOffset: (dot.cx - pr.x)*0.4 + vx*0.03,
+            yOffset: (dot.cy - pr.y)*0.4 + vy*0.03,
+            duration: 0.25, ease: 'power2.out',
+            onComplete() {
+              gsap.to(dot, { xOffset:0, yOffset:0, duration: CFG.returnDuration, ease:'elastic.out(1,0.75)' });
+              dot._applied = false;
+            }
+          });
+        }
+      }
+    }, 50);
+
+    const onClick = e => {
+      if (typeof gsap === 'undefined') return;
+      for (const dot of dots) {
+        const dist = Math.hypot(dot.cx - e.clientX, dot.cy - e.clientY);
+        if (dist < CFG.shockRadius && !dot._applied) {
+          dot._applied = true;
+          gsap.killTweensOf(dot);
+          const falloff = Math.max(0, 1 - dist/CFG.shockRadius);
+          gsap.to(dot, {
+            xOffset: (dot.cx - e.clientX)*CFG.shockStrength*falloff,
+            yOffset: (dot.cy - e.clientY)*CFG.shockStrength*falloff,
+            duration: 0.2, ease: 'power3.out',
+            onComplete() {
+              gsap.to(dot, { xOffset:0, yOffset:0, duration: CFG.returnDuration, ease:'elastic.out(1,0.75)' });
+              dot._applied = false;
+            }
+          });
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', onMove, { passive:true });
+    window.addEventListener('click', onClick);
+    window.addEventListener('resize', buildGrid);
+    buildGrid();
+    draw();
+  })();
+  </script>
+
+</body>
     
 
 </html>

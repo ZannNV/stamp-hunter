@@ -7,6 +7,10 @@
   <title>Praktikum Menggambar Teknik</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <!-- Three.js for LightPillar -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- GSAP for DotGrid -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -25,18 +29,27 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    *::-webkit-scrollbar { display: none; }
 
+    html, body {
+      height: 100%;
+    }
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(to bottom, #ffffff 0%, #e0f2fe 100%);
+      background: #ffffff;
       background-attachment: fixed;
-      color: var(--text-main);
+      color: #1f2937;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
+      margin: 0;
+      padding: 0;
     }
+
 
     /* --- PAGE SYSTEM --- */
     .page {
@@ -161,12 +174,12 @@
 
     .track-left {
       animation: scroll-left 50s linear infinite;
-      color: var(--primary-dark);
+      color: #1e3a8a;
     }
 
     .track-right {
       animation: scroll-right 60s linear infinite;
-      color: rgba(37, 99, 235, 0.5); /* Agak muda */
+      color: rgba(37, 99, 235, 0.5);
     }
 
     .marquee-track span {
@@ -211,7 +224,18 @@
       text-align: center;
       z-index: 10;
       width: 100%;
-      padding-bottom: 5vh;
+    }
+
+    #app-home {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 70px);
+    }
+
+    .logo-loop-section {
+      margin-top: auto;
+      padding: 24px 0 32px 0;
+      text-align: center;
     }
 
     /* INLINE FORM (Premium Glassmorphism Style) */
@@ -420,7 +444,10 @@
       align-items: center;
       justify-content: center;
       aspect-ratio: 1;
+      min-width: 80px;
+      min-height: 80px;
       transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+      cursor: pointer;
     }
 
     .stamp-box.earned {
@@ -474,7 +501,17 @@
       padding-bottom: 0;
     }
 
+    /* ── Custom dropdown (always opens downward) ── */
+    .custom-select-wrap {
+      position: relative;
+      min-width: 250px;
+    }
     .date-select {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
       padding: 10px 16px;
       border-radius: 12px;
       border: 1px solid #cbd5e1;
@@ -485,8 +522,50 @@
       background: #f8fafc;
       cursor: pointer;
       font-weight: 600;
-      min-width: 250px;
+      text-align: left;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
+    .date-select:hover, .date-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .custom-select-list {
+      position: absolute;
+      top: calc(100% + 6px);   /* always below the button */
+      left: 0;
+      right: 0;
+      z-index: 500;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      list-style: none;
+      padding: 6px 0;
+      margin: 0;
+      max-height: 260px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+      display: none;
+      animation: dropDown 0.18s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .custom-select-list.open { display: block; }
+    @keyframes dropDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .custom-select-list li {
+      padding: 9px 16px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--primary-dark);
+      cursor: pointer;
+      transition: background 0.15s;
+      border-radius: 8px;
+      margin: 2px 4px;
+    }
+    .custom-select-list li:hover { background: #eff6ff; }
+    .custom-select-list li.selected { background: #dbeafe; font-weight: 700; }
 
     .attendance-cards {
       display: flex;
@@ -585,68 +664,43 @@
       gap: 8px;
     }
 
-    /* PIXEL TRAIL CANVAS */
-    #pixel-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0; /* Berada di bawah kotak/elemen UI */
-    }
 
-    /* LOADING OVERLAY (CINEMATIC) */
+    /* ===== MAGIC RINGS INTRO LOADER ===== */
     #loader {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to bottom, #ffffff 0%, #e0f2fe 100%);
+      inset: 0;
+      background: #05050f;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      color: var(--primary-dark);
-      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+      transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 1.2s;
     }
-    .loader-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
+    #loader-rings-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
     }
-    .loader-logo-text {
-      font-size: 2.5rem;
+    #loader-title {
+      position: relative;
+      z-index: 2;
+      color: #ffffff;
+      font-size: clamp(1.6rem, 4vw, 3rem);
       font-weight: 900;
       letter-spacing: -1px;
-      animation: pulseLogo 2s infinite ease-in-out;
+      text-align: center;
+      opacity: 0;
+      animation: loaderFadeIn 1.4s 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
+      text-shadow: 0 0 40px rgba(99,102,241,0.6);
+      padding: 0 24px;
     }
-    @keyframes pulseLogo {
-      0%, 100% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.05); opacity: 1; }
+    @keyframes loaderFadeIn {
+      from { opacity:0; transform: translateY(16px); }
+      to   { opacity:1; transform: translateY(0); }
     }
-    .progress-container {
-      width: 200px;
-      height: 4px;
-      background: rgba(37, 99, 235, 0.2);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-    .progress-bar {
-      width: 0%;
-      height: 100%;
-      background: var(--primary);
-      transition: width 0.4s ease-out;
-    }
-    #loader-text {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
+    /* ===================================== */
 
     /* CINEMATIC REVEAL */
     .reveal {
@@ -694,6 +748,8 @@
       text-align: center;
       max-width: 350px;
       width: 90%;
+      /* Hard-pin to viewport center regardless of scroll container */
+      position: relative;
       transform: translate(var(--start-x, 0px), var(--start-y, 20px)) scale(var(--start-scale, 0.9));
       transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -815,160 +871,320 @@
       }
     }
   
-    /* --- NEW MAIN NAVBAR --- */
+    /* ===== NAVBAR ===== */
     .main-navbar {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      background: #ffffff;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
       padding: 10px 5%;
       box-shadow: 0 4px 15px rgba(0,0,0,0.05);
       z-index: 100;
       position: relative;
     }
 
+    /* Logo Icon Buttons (nav-left) */
     .main-navbar .nav-left {
       display: flex;
       align-items: center;
-      gap: 15px;
-      flex: 1;
-      flex-wrap: wrap;
+      gap: 8px;
     }
-
-    .main-navbar .nav-left img {
-      height: 35px;
-      object-fit: contain;
+    .nav-logo-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px; height: 40px;
+      border: 1.5px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      overflow: hidden;
+      padding: 5px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
+    .nav-logo-btn:hover {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(37,99,235,0.18);
+      border-color: rgba(37,99,235,0.35);
+    }
+    .nav-logo-btn img { width: 100%; height: 100%; object-fit: contain; }
 
+    /* ===== ANIMATED TABS (nav-center, centered via grid) ===== */
     .main-navbar .nav-center {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      flex: 2;
     }
-
-    .main-navbar .nav-right {
-      flex: 1;
+    /* Moving-pill tabs */
+    .anim-tabs-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      background: rgba(100,116,139,0.09);
+      border: 1px solid rgba(37,99,235,0.12);
+      border-radius: 99px;
+      padding: 5px;
+      gap: 2px;
     }
-
-    /* Mobile Navbar */
-    @media (max-width: 1024px) {
-      .main-navbar {
-        flex-direction: column;
-        padding: 12px 16px 0 16px;
-        gap: 8px;
-      }
-
-      .main-navbar .nav-left {
-        flex: none;
-        width: 100%;
-        justify-content: center;
-        flex-wrap: nowrap;
-        gap: 10px;
-        padding-bottom: 4px;
-      }
-
-      .main-navbar .nav-left img {
-        height: 28px;
-      }
-
-      .main-navbar .nav-right {
-        display: none;
-      }
-
-      .main-navbar .nav-center {
-        flex: none;
-        width: 100%;
-        justify-content: flex-start;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 0;
-        gap: 0;
-        /* Hide scrollbar but keep scroll */
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-
-      .main-navbar .nav-center::-webkit-scrollbar {
-        display: none;
-      }
-
-      .tab-btn {
-        white-space: nowrap;
-        flex-shrink: 0;
-        padding: 10px 16px;
-        font-size: 0.9rem;
-      }
+    /* The sliding pill */
+    #anim-pill {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      height: calc(100% - 10px);
+      background: #2563eb;
+      border-radius: 99px;
+      z-index: 0;
+      transition: left 0.28s cubic-bezier(0.34,1.4,0.64,1), width 0.28s cubic-bezier(0.34,1.4,0.64,1);
+      pointer-events: none;
     }
-
+    /* Real clickable buttons */
     .tab-btn {
+      position: relative;
+      z-index: 1;
       background: transparent;
       border: none;
-      padding: 10px 20px;
-      font-size: 1rem;
-      font-weight: 700;
+      padding: 8px 18px;
+      font-size: 0.92rem;
+      font-weight: 600;
       color: #64748b;
       cursor: pointer;
-      border-bottom: 3px solid transparent;
-      transition: color 0.3s, border-bottom 0.3s;
+      border-radius: 99px;
+      white-space: nowrap;
+      transition: color 0.2s;
+      font-family: inherit;
     }
+    .tab-btn:hover { color: #1e293b; }
+    .tab-btn.active { color: #ffffff; font-weight: 700; }
 
-    .tab-btn:hover {
-      color: #1e293b;
+    .main-navbar .nav-right { display: none; }
+
+    @media (max-width: 1024px) {
+      .main-navbar {
+        grid-template-columns: 1fr;
+        padding: 10px 16px 8px 16px;
+        gap: 8px;
+      }
+      .main-navbar .nav-left { justify-content: center; }
+      .nav-logo-btn { width: 34px; height: 34px; }
+      .main-navbar .nav-center { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+      .main-navbar .nav-center::-webkit-scrollbar { display: none; }
+      .anim-tabs-wrap { width: max-content; }
+      .tab-btn { padding: 7px 14px; font-size: 0.85rem; }
     }
+    /* ====================================== */
 
-    .tab-btn.active {
-      color: var(--primary);
-      border-bottom: 3px solid var(--primary);
+    /* ===== TAB PAGE SYSTEM ===== */
+    #tab-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      position: relative;
+      /* overflow must NOT be hidden — tabs need to scroll */
+      overflow: visible;
     }
-
     .app-tab {
       display: none;
       flex: 1;
       width: 100%;
       flex-direction: column;
+      opacity: 0;
+      transform: translateY(8px);
+      /* Allow content to scroll, hide scrollbar visually */
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;       /* Firefox */
+      -ms-overflow-style: none;    /* IE/Edge */
     }
-    
+    .app-tab::-webkit-scrollbar { display: none; } /* Chrome/Safari */
     .app-tab.active {
       display: flex;
+      animation: tabFadeIn 0.32s cubic-bezier(0.16,1,0.3,1) forwards;
     }
-    /* ----------------------- */
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+    /* ========================= */
+    /* Stat value fade when stamp tab activates */
+    .stat-val {
+      transition: opacity 0.5s ease;
+    }
 
+    /* ===== LOGOLOOP (ported from React Bits) ===== */
+    .logoloop {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      --logoloop-gap: 48px;
+      --logoloop-logoHeight: 44px;
+      --logoloop-fadeColorAuto: #f0f8ff;
+    }
+    .logoloop__track {
+      display: flex;
+      width: max-content;
+      will-change: transform;
+      user-select: none;
+    }
+    .logoloop__list {
+      display: flex;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+    }
+    .logoloop__item {
+      flex: 0 0 auto;
+      margin-right: var(--logoloop-gap);
+      display: flex;
+      align-items: center;
+    }
+    .logoloop__item img {
+      height: var(--logoloop-logoHeight);
+      width: auto;
+      display: block;
+      object-fit: contain;
+      -webkit-user-drag: none;
+      pointer-events: none;
+      filter: grayscale(20%);
+      opacity: 0.85;
+      transition: opacity 0.3s, filter 0.3s, transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .logoloop__item:hover img {
+      opacity: 1;
+      filter: grayscale(0%);
+      transform: scale(1.1);
+    }
+    .logoloop--fade::before,
+    .logoloop--fade::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: clamp(24px, 8%, 100px);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .logoloop--fade::before {
+      left: 0;
+      background: linear-gradient(to right,
+        var(--logoloop-fadeColor, var(--logoloop-fadeColorAuto)) 0%,
+        rgba(0,0,0,0) 100%);
+    }
+    .logoloop--fade::after {
+      right: 0;
+      background: linear-gradient(to left,
+        var(--logoloop-fadeColor, var(--logoloop-fadeColorAuto)) 0%,
+        rgba(0,0,0,0) 100%);
+    }
+
+    .logo-loop-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    /* ============================================== */
+
+
+    /* ===== DOT GRID BACKGROUND ===== */
+    #dg-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #dg-bg canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* All content above dot-grid bg */
+    .main-navbar,
+    .app-tab,
+    #pin-modal {
+      position: relative;
+      z-index: 10;
+    }
+    /* Main content hidden until loader finishes */
+    #main-content {
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+    #main-content.visible {
+      opacity: 1;
+    }
+    /* ================================ */
 </style>
 </head>
 
 <body>
 
-  <!-- LOADER -->
+  <!-- DotGrid Background -->
+  <div id="dg-bg"></div>
+
+
+  <!-- MAGIC RINGS INTRO LOADER -->
   <div id="loader">
-    <div class="loader-content">
-      <div class="loader-logo-text">Praktikum Menggambar Teknik</div>
-      <div class="progress-container">
-        <div class="progress-bar" id="loader-progress"></div>
-      </div>
-      <div id="loader-text">Menginisialisasi sistem...</div>
-    </div>
+    <canvas id="loader-rings-canvas"></canvas>
+    <div id="loader-title">Praktikum Menggambar Teknik</div>
   </div>
 
-  <!-- NEW MAIN NAVBAR -->
+  <!-- MAIN CONTENT (hidden until loader done) -->
+  <div id="main-content">
+
+  <!-- NAVBAR -->
   <div class="main-navbar" id="main-navbar">
+
+    <!-- Logo Icon Buttons (left) -->
     <div class="nav-left">
-      <img src="Logo Unsika.svg" alt="UNSIKA">
-      <img src="Logo Acquin.svg" alt="ACQUIN">
-      <img src="Logo BLU.svg" alt="BLU SPEED">
-      <img src="Logo Prak Gamtek.svg" alt="Praktikum Menggambar Teknik">
-      <img src="Logo Impranet.svg" alt="Impranet">
+      <button class="nav-logo-btn" title="UNSIKA">
+        <img src="Logo Unsika.svg" alt="UNSIKA">
+      </button>
+      <button class="nav-logo-btn" title="ACQUIN">
+        <img src="Logo Acquin.svg" alt="ACQUIN">
+      </button>
+      <button class="nav-logo-btn" title="BLU SPEED">
+        <img src="Logo BLU.svg" alt="BLU SPEED">
+      </button>
+      <button class="nav-logo-btn" title="Praktikum Menggambar Teknik">
+        <img src="Logo Prak Gamtek.svg" alt="Gamtek">
+      </button>
+      <button class="nav-logo-btn" title="Impranet">
+        <img src="Logo Impranet.svg" alt="Impranet">
+      </button>
     </div>
+
+    <!-- Animated Tabs (center) -->
     <div class="nav-center">
-      <button class="tab-btn active" onclick="switchAppTab('home')">Home</button>
-      <button class="tab-btn" onclick="switchAppTab('stamp')">Stamp dan Absensi</button>
-      <button class="tab-btn" onclick="switchAppTab('dice')">Colour Dice</button>
-      <button class="tab-btn" onclick="switchAppTab('timer')">Timer</button>
+      <div class="anim-tabs-wrap" id="anim-tabs-wrap">
+        <!-- Sliding pill indicator (no ghost buttons) -->
+        <div id="anim-pill"></div>
+        <!-- Clickable buttons -->
+        <button class="tab-btn active" id="tbtn-home"  onclick="switchAppTab('home')">Home</button>
+        <button class="tab-btn"        id="tbtn-stamp" onclick="switchAppTab('stamp')">Stamp dan Absensi</button>
+        <button class="tab-btn"        id="tbtn-dice"  onclick="switchAppTab('dice')">Colour Dice</button>
+        <button class="tab-btn"        id="tbtn-timer" onclick="switchAppTab('timer')">Timer</button>
+      </div>
     </div>
-    <div class="nav-right"></div>
+
   </div>
 
   
+  <!-- TAB CONTAINER -->
+  <div id="tab-container">
   <div id="app-home" class="app-tab active">
 
 
@@ -989,12 +1205,110 @@
           <span>PRAKTIKUM MENGGAMBAR TEKNIK • PRAKTIKUM MENGGAMBAR TEKNIK • </span>
         </div>
       </div>
-
-      
-
-      
     </div>
+
+    <!-- LogoLoop Section -->
+    <div class="logo-loop-section">
+      <div class="logoloop logoloop--fade" id="home-logo-loop"
+           style="--logoloop-fadeColor: #f0f8ff; --logoloop-logoHeight: 44px; --logoloop-gap: 60px;">
+        <div class="logoloop__track" id="ll-track">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
   </div>
+
+  <script>
+  // ====== LogoLoop Vanilla JS (adapted from React Bits) ======
+  (function() {
+    const logos = [
+      { src: 'Logo AutoCAD.svg',        alt: 'AutoCAD',      title: 'AutoCAD',      href: 'https://www.autodesk.com/products/autocad' },
+      { src: 'Logo Onshape.svg',        alt: 'Onshape',      title: 'Onshape',      href: 'https://www.onshape.com' },
+      { src: 'Logo ActivInspire.svg',   alt: 'ActivInspire', title: 'ActivInspire', href: 'https://www.prometheanworld.com/products/software/activinspire/' },
+    ];
+
+    const COPIES = 6;
+    const SPEED  = 80; // px/s
+    const track  = document.getElementById('ll-track');
+    if (!track) return;
+
+    // Build HTML
+    for (let c = 0; c < COPIES; c++) {
+      const ul = document.createElement('ul');
+      ul.className = 'logoloop__list';
+      ul.setAttribute('aria-hidden', c > 0 ? 'true' : 'false');
+      logos.forEach(logo => {
+        const li = document.createElement('li');
+        li.className = 'logoloop__item';
+        const a = document.createElement('a');
+        a.href = logo.href;
+        a.target = '_blank';
+        a.rel = 'noreferrer noopener';
+        a.title = logo.title;
+        const img = document.createElement('img');
+        img.src   = logo.src;
+        img.alt   = logo.alt;
+        img.title = logo.title;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        a.appendChild(img);
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      track.appendChild(ul);
+    }
+
+    // Animation
+    let offset = 0;
+    let lastTs = null;
+    let seqWidth = 0;
+    let rafId   = null;
+
+    function getSeqWidth() {
+      const firstList = track.querySelector('.logoloop__list');
+      return firstList ? firstList.getBoundingClientRect().width : 0;
+    }
+
+    function animate(ts) {
+      if (lastTs === null) lastTs = ts;
+      const dt = Math.max(0, ts - lastTs) / 1000;
+      lastTs = ts;
+      if (seqWidth <= 0) seqWidth = getSeqWidth();
+      if (seqWidth > 0) {
+        offset = (offset + SPEED * dt) % seqWidth;
+        track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+      }
+      rafId = requestAnimationFrame(animate);
+    }
+
+    // Wait for images then start
+    const allImgs = track.querySelectorAll('img');
+    let loaded = 0;
+    function onImgDone() {
+      loaded++;
+      if (loaded >= logos.length) {
+        seqWidth = getSeqWidth();
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(animate);
+      }
+    }
+    allImgs.forEach((img, i) => {
+      if (i >= logos.length) return; // only count first set
+      if (img.complete) { onImgDone(); }
+      else {
+        img.addEventListener('load',  onImgDone, { once: true });
+        img.addEventListener('error', onImgDone, { once: true });
+      }
+    });
+    // Fallback start if images load quickly
+    setTimeout(() => { if (!rafId) rafId = requestAnimationFrame(animate); }, 600);
+
+    // Recalc on resize
+    window.addEventListener('resize', () => { seqWidth = getSeqWidth(); });
+  })();
+  // ===========================================================
+  </script>
 
   <div id="app-stamp" class="app-tab">
   <!-- PAGE 1: LANDING PAGE -->
@@ -1041,9 +1355,24 @@
     <div class="board-section">
       <div class="section-header-row">
         <h3>Absensi dan Stamp yang Diperoleh</h3>
-        <select id="date-select" class="date-select" onchange="renderAttendance()">
-          <option value="">Pilih Tanggal...</option>
-        </select>
+        <!-- Custom dropdown: opens downward, keyboard-accessible -->
+        <div class="custom-select-wrap" id="custom-date-wrap">
+          <button class="date-select" id="date-select-btn" type="button"
+                  onclick="toggleDateDropdown(event)"
+                  aria-haspopup="listbox" aria-expanded="false">
+            <span id="date-select-label">Pilih Tanggal...</span>
+            <svg style="width:16px;height:16px;flex-shrink:0;transition:transform .2s"
+                 id="date-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <ul class="custom-select-list" id="date-select-list" role="listbox">
+            <!-- populated by JS -->
+          </ul>
+        </div>
+        <!-- Hidden value carrier (used by renderAttendance) -->
+        <input type="hidden" id="date-select" value="">
       </div>
 
       <div id="attendance-cards" class="attendance-cards">
@@ -1060,15 +1389,6 @@
     </div>
   </div>
 
-  <!-- MODAL -->
-  <div class="modal-overlay" id="stamp-modal" onclick="closeStampModal()">
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <h3 id="modal-module-name">Modul</h3>
-      <div class="points" id="modal-points">0</div>
-      <div class="points-label">Total Stamp Diperoleh</div>
-      <button class="btn-primary" style="width: 100%" onclick="closeStampModal()">Tutup</button>
-    </div>
-  </div>
 
   <script>
     // ==========================================================
@@ -1222,36 +1542,71 @@
 
         calculateStats();
 
-        const loaderProgress = document.getElementById('loader-progress');
-        const loaderText = document.getElementById('loader-text');
-        if (loaderProgress) loaderProgress.style.width = '100%';
-        if (loaderText) loaderText.textContent = "Selesai!";
+        // ── Detect refresh vs first visit ──────────────────────────────────
+        const isFirstVisit = !sessionStorage.getItem('gamtek_visited');
 
-        setTimeout(() => {
+        if (isFirstVisit) {
+          // ── FIRST VISIT: play the cinematic intro ──
+          sessionStorage.setItem('gamtek_visited', '1');
+
+          setTimeout(() => {
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('main-content');
+            if (loader) {
+              loader.style.opacity = '0';
+              loader.style.visibility = 'hidden';
+              setTimeout(() => { loader.style.display = 'none'; }, 1200);
+            }
+            setTimeout(() => {
+              if (mainContent) mainContent.classList.add('visible');
+              initTabDisplay();
+              setTimeout(() => {
+                initAnimatedTabs();
+                restoreLastTab();
+              }, 80);
+            }, 400);
+
+            // Auto-login check
+            const savedPin = localStorage.getItem('stampHunterPin');
+            if (savedPin) {
+              document.getElementById('pin-input').value = savedPin;
+              login();
+            } else {
+              showPage('page-landing');
+            }
+          }, 500);
+
+        } else {
+          // ── REFRESH: skip loader instantly, go straight to content ──
           const loader = document.getElementById('loader');
-          if (loader) {
-            loader.style.opacity = '0';
-            loader.style.visibility = 'hidden';
-            setTimeout(() => { loader.style.display = 'none'; }, 800);
+          const mainContent = document.getElementById('main-content');
+          if (loader) loader.style.display = 'none';
+          if (mainContent) {
+            mainContent.style.opacity = '1';
+            mainContent.classList.add('visible');
           }
-          
+          initTabDisplay();
+          setTimeout(() => {
+            initAnimatedTabs();
+            restoreLastTab();
+          }, 80);
+
           // Auto-login check
           const savedPin = localStorage.getItem('stampHunterPin');
           if (savedPin) {
             document.getElementById('pin-input').value = savedPin;
             login();
           } else {
-            // Memicu cinematic reveal untuk landing page
             showPage('page-landing');
           }
-        }, 500);
+        }
 
         if (pinColumnIndex === -1) {
           console.warn("Kolom 'Kode Unik' atau 'PIN' tidak ditemukan. Pastikan nama header sesuai di Google Sheets.");
         }
 
       } catch (e) {
-        document.getElementById('loader-text').innerHTML = "❌ Gagal memuat data.<br>Pastikan koneksi internet aktif dan link Sheets valid.";
+        console.error('Gagal memuat data. Pastikan koneksi internet aktif.', e);
         console.error(e);
       }
     }
@@ -1389,15 +1744,33 @@
       // ----------------------------------------------------
       // Render Pilihan Tanggal Absensi
       // ----------------------------------------------------
-      const dateSelect = document.getElementById('date-select');
-      dateSelect.innerHTML = '<option value="">Pilih Tanggal...</option><option value="ALL">Tampilkan Keseluruhan</option>';
-
-      orderedDates.forEach(dateRaw => {
-        const opt = document.createElement('option');
-        opt.value = dateRaw;
-        opt.textContent = formatDateFull(dateRaw); // Format penuh, cth: "13 Februari 2026"
-        dateSelect.appendChild(opt);
-      });
+      // Populate custom dropdown
+      const dateInput = document.getElementById('date-select');
+      const dateList  = document.getElementById('date-select-list');
+      const dateLabel = document.getElementById('date-select-label');
+      if (dateList) {
+        dateList.innerHTML = '';
+        const opts = [
+          { value: '',    label: 'Pilih Tanggal...' },
+          { value: 'ALL', label: 'Tampilkan Keseluruhan' },
+          ...orderedDates.map(d => ({ value: d, label: formatDateFull(d) }))
+        ];
+        opts.forEach(({ value, label }) => {
+          const li = document.createElement('li');
+          li.textContent = label;
+          li.dataset.value = value;
+          li.setAttribute('role', 'option');
+          li.onclick = () => {
+            if (dateInput) dateInput.value = value;
+            if (dateLabel) dateLabel.textContent = label;
+            dateList.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+            closeDateDropdown();
+            renderAttendance();
+          };
+          dateList.appendChild(li);
+        });
+      }
 
       // Reset tampilan absensi saat pertama kali load
       document.getElementById('attendance-cards').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">Pilih tanggal di atas untuk melihat detail kehadiran.</div>';
@@ -1417,6 +1790,37 @@
     }
 
     // Fungsi Render Info Kehadiran Saat Dropdown Berubah
+
+    function toggleDateDropdown(e) {
+      e.stopPropagation();
+      const list  = document.getElementById('date-select-list');
+      const btn   = document.getElementById('date-select-btn');
+      const arrow = document.getElementById('date-arrow');
+      if (!list) return;
+      const isOpen = list.classList.contains('open');
+      if (isOpen) {
+        list.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      } else {
+        list.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      }
+    }
+    function closeDateDropdown() {
+      const list  = document.getElementById('date-select-list');
+      const btn   = document.getElementById('date-select-btn');
+      const arrow = document.getElementById('date-arrow');
+      if (list)  list.classList.remove('open');
+      if (btn)   btn.setAttribute('aria-expanded', 'false');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('custom-date-wrap');
+      if (wrap && !wrap.contains(e.target)) closeDateDropdown();
+    });
     function renderAttendance() {
       const dateRaw = document.getElementById('date-select').value;
       const container = document.getElementById('attendance-cards');
@@ -1551,50 +1955,6 @@
     // Inisialisasi saat load
     window.onload = loadData;
 
-    // ==========================================
-    // FITUR PIXEL TRAIL (CANVAS)
-    // ==========================================
-    const pixelCanvas = document.createElement('canvas');
-    pixelCanvas.id = 'pixel-canvas';
-    document.body.appendChild(pixelCanvas);
-    const ctx = pixelCanvas.getContext('2d');
-
-    let cw, ch;
-    function resizeCanvas() {
-      cw = window.innerWidth;
-      ch = window.innerHeight;
-      pixelCanvas.width = cw;
-      pixelCanvas.height = ch;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    const gridSize = 40; // Ukuran kotak pixel
-    const activePixels = new Map();
-
-    document.addEventListener('mousemove', (e) => {
-      const gridX = Math.floor(e.clientX / gridSize) * gridSize;
-      const gridY = Math.floor(e.clientY / gridSize) * gridSize;
-      const key = `${gridX},${gridY}`;
-      
-      activePixels.set(key, { x: gridX, y: gridY, life: 1.0 });
-    });
-
-    function drawPixelTrail() {
-      ctx.clearRect(0, 0, cw, ch);
-      for (let [key, p] of activePixels.entries()) {
-        p.life -= 0.02; // Kecepatan memudar
-        if (p.life <= 0) {
-          activePixels.delete(key);
-        } else {
-          ctx.fillStyle = `rgba(37, 99, 235, ${p.life * 0.25})`; 
-          const pad = 2;
-          ctx.fillRect(p.x + pad, p.y + pad, gridSize - pad * 2, gridSize - pad * 2);
-        }
-      }
-      requestAnimationFrame(drawPixelTrail);
-    }
-    drawPixelTrail();
 
   </script>
   </div> <!-- End of app-stamp -->
@@ -1606,6 +1966,10 @@
   <div id="app-timer" class="app-tab">
     <iframe src="timer.html" style="width:100%; height:100vh; border:none; flex:1;"></iframe>
   </div>
+
+  </div><!-- end #tab-container -->
+  <!-- /MAIN CONTENT -->
+  </div><!-- end #main-content -->
 
   <!-- PIN MODAL -->
   <div id="pin-modal" style="
@@ -1620,7 +1984,7 @@
     ">
       <div style="font-size:2.5rem; margin-bottom:12px;">🔐</div>
       <h2 style="font-size:1.4rem; font-weight:800; color:#1e293b; margin-bottom:6px;">Akses Terbatas</h2>
-      <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px;">Masukkan PIN untuk membuka fitur ini.</p>
+      <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px;">Masukkan PIN untuk membuka.</p>
 
       <input id="modal-pin-input" type="password" placeholder="Masukkan PIN..."
         onkeyup="if(event.key==='Enter') confirmPin()"
@@ -1637,7 +2001,7 @@
       <div style="margin-bottom:4px; text-align:left; padding:0 4px;">
         <label style="font-size:0.82rem; color:#94a3b8; font-weight:600; letter-spacing:0.5px;">KODE KHUSUS <span style="font-weight:400; color:#cbd5e1;">(opsional)</span></label>
       </div>
-      <input id="modal-special-input" type="password" placeholder="Kode Khusus..."
+      <input id="modal-special-input" type="password" placeholder="Masukkan Kode Khusus..."
         onkeyup="if(event.key==='Enter') confirmPin()"
         style="
           width:100%; padding:12px 20px; border-radius:50px; border:2px solid #f1f5f9;
@@ -1713,10 +2077,87 @@
     }
 
     function doSwitchTab(tabId, btn) {
-      document.querySelectorAll('.app-tab').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('app-' + tabId).classList.add('active');
-      btn.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      // ── Persist active tab for refresh restoration ──
+      localStorage.setItem('gamtek_lastTab', tabId);
+
+      // ── Force-hide ALL tabs via inline style (bypasses CSS specificity) ──
+      document.querySelectorAll('.app-tab').forEach(el => {
+        el.style.display   = 'none';
+        el.style.opacity   = '0';
+        el.style.transform = 'translateY(8px)';
+        el.classList.remove('active');
+      });
+
+      // ── Show the target tab with fade-in ──
+      const target = document.getElementById('app-' + tabId);
+      if (target) {
+        target.style.display   = 'flex';
+        target.style.opacity   = '0';
+        target.style.transform = 'translateY(8px)';
+        target.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+        target.classList.add('active');
+        // Trigger reflow so transition fires
+        target.getBoundingClientRect();
+        target.style.opacity   = '1';
+        target.style.transform = 'translateY(0)';
+      }
+      // Re-run count-up animation every time Stamp tab is activated
+      if (tabId === 'stamp' && typeof calculateStats === 'function') {
+        setTimeout(() => calculateStats(), 150);
+      }
+
+      // ── Update tab pill ──
+      document.querySelectorAll('#anim-tabs-wrap > .tab-btn').forEach(el => el.classList.remove('active'));
+      const activeBtn = document.getElementById('tbtn-' + tabId);
+      if (activeBtn) activeBtn.classList.add('active');
+      updateAnimatedTabs(activeBtn || btn);
+    }
+
+    // Force-hide all inactive tabs immediately on init (no CSS class dependency)
+    function initTabDisplay() {
+      document.querySelectorAll('.app-tab').forEach(el => {
+        if (el.classList.contains('active')) {
+          el.style.display   = 'flex';
+          el.style.opacity   = '1';
+          el.style.transform = 'translateY(0)';
+        } else {
+          el.style.display   = 'none';
+          el.style.opacity   = '0';
+        }
+      });
+    }
+
+    // ── Tab persistence across refresh ──────────────────────────────
+    function restoreLastTab() {
+      const lastTab = localStorage.getItem('gamtek_lastTab');
+      if (!lastTab || lastTab === 'home') return;   // home is default, nothing to restore
+
+      if (lastTab === 'dice' || lastTab === 'timer') {
+        // Protected tabs: only restore if assprak session is still active
+        if (sessionStorage.getItem('gamtek_assprak') === '1') {
+          doSwitchTab(lastTab, null);
+        } else {
+          // Can't restore protected tab without re-auth — clear saved tab
+          localStorage.removeItem('gamtek_lastTab');
+        }
+      } else {
+        // 'stamp' and other public tabs
+        doSwitchTab(lastTab, null);
+      }
+    }
+
+    function updateAnimatedTabs(activeBtn) {
+      const pill = document.getElementById('anim-pill');
+      if (!pill || !activeBtn) return;
+      pill.style.left  = activeBtn.offsetLeft + 'px';
+      pill.style.width = activeBtn.offsetWidth + 'px';
+    }
+
+    function initAnimatedTabs() {
+      const activeBtn = document.querySelector('#anim-tabs-wrap > .tab-btn.active');
+      if (activeBtn) updateAnimatedTabs(activeBtn);
     }
 
     function openPinModal() {
@@ -1764,6 +2205,292 @@
       if (e.target === this) cancelPin();
     });
   </script>
+
+  <script>
+  // ====== DotGrid — Vanilla JS (ported from React Bits) ======
+  (function initDotGrid() {
+    const container = document.getElementById('dg-bg');
+    if (!container) return;
+
+    const CFG = {
+      dotSize      : 7,
+      gap          : 26,
+      baseColor    : '#dbeafe',   // blue-100 — very subtle on white
+      activeColor  : '#2563eb',   // blue-600 — matches site primary
+      proximity    : 130,
+      speedTrigger : 90,
+      shockRadius  : 210,
+      shockStrength: 4,
+      maxSpeed     : 5000,
+      resistance   : 750,
+      returnDuration: 1.5
+    };
+
+    function hexToRgb(hex) {
+      const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+      return m ? { r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16) } : {r:0,g:0,b:0};
+    }
+    const baseRgb   = hexToRgb(CFG.baseColor);
+    const activeRgb = hexToRgb(CFG.activeColor);
+
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    let dots = [];
+    const pr = { x: -9999, y: -9999, vx:0, vy:0, speed:0, lastTime:0, lastX:0, lastY:0 };
+
+    // ─── Pre-build circle path ───────────────────────────────────
+    const circlePath = new Path2D();
+    circlePath.arc(0, 0, CFG.dotSize / 2, 0, Math.PI * 2);
+
+    // ─── Build grid ──────────────────────────────────────────────
+    function buildGrid() {
+      const w = window.innerWidth, h = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width  = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.scale(dpr, dpr);
+
+      const cell = CFG.dotSize + CFG.gap;
+      const cols = Math.floor((w + CFG.gap) / cell);
+      const rows = Math.floor((h + CFG.gap) / cell);
+      const gridW = cell * cols - CFG.gap;
+      const gridH = cell * rows - CFG.gap;
+      const startX = (w - gridW) / 2 + CFG.dotSize / 2;
+      const startY = (h - gridH) / 2 + CFG.dotSize / 2;
+
+      // Kill running tweens on old dots
+      if (typeof gsap !== 'undefined') dots.forEach(d => gsap.killTweensOf(d));
+
+      dots = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          dots.push({ cx: startX + c*cell, cy: startY + r*cell, xOffset:0, yOffset:0, _applied:false });
+        }
+      }
+    }
+
+    // ─── Render loop ─────────────────────────────────────────────
+    const proxSq = CFG.proximity * CFG.proximity;
+    function draw() {
+      const w = canvas.width / (window.devicePixelRatio||1);
+      const h = canvas.height / (window.devicePixelRatio||1);
+      ctx.clearRect(0, 0, w, h);
+
+      for (const dot of dots) {
+        const ox = dot.cx + dot.xOffset;
+        const oy = dot.cy + dot.yOffset;
+        const dx = dot.cx - pr.x, dy = dot.cy - pr.y;
+        const dsq = dx*dx + dy*dy;
+
+        let fillStyle = CFG.baseColor;
+        if (dsq <= proxSq) {
+          const t = 1 - Math.sqrt(dsq) / CFG.proximity;
+          const r = Math.round(baseRgb.r + (activeRgb.r - baseRgb.r) * t);
+          const g = Math.round(baseRgb.g + (activeRgb.g - baseRgb.g) * t);
+          const b = Math.round(baseRgb.b + (activeRgb.b - baseRgb.b) * t);
+          fillStyle = `rgb(${r},${g},${b})`;
+        }
+
+        ctx.save();
+        ctx.translate(ox, oy);
+        ctx.fillStyle = fillStyle;
+        ctx.fill(circlePath);
+        ctx.restore();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    // ─── Mouse / pointer events ──────────────────────────────────
+    function throttle(fn, ms) {
+      let last = 0;
+      return function(...args) { const now = performance.now(); if (now - last >= ms) { last=now; fn.apply(this,args); } };
+    }
+
+    const onMove = throttle(e => {
+      const now = performance.now();
+      const dt = pr.lastTime ? now - pr.lastTime : 16;
+      const dx = e.clientX - pr.lastX, dy = e.clientY - pr.lastY;
+      let vx = (dx/dt)*1000, vy = (dy/dt)*1000;
+      let speed = Math.hypot(vx, vy);
+      if (speed > CFG.maxSpeed) { const s=CFG.maxSpeed/speed; vx*=s; vy*=s; speed=CFG.maxSpeed; }
+      pr.lastTime=now; pr.lastX=e.clientX; pr.lastY=e.clientY;
+      pr.vx=vx; pr.vy=vy; pr.speed=speed;
+      pr.x=e.clientX; pr.y=e.clientY;
+
+      if (typeof gsap === 'undefined') return;
+      for (const dot of dots) {
+        const dist = Math.hypot(dot.cx - pr.x, dot.cy - pr.y);
+        if (speed > CFG.speedTrigger && dist < CFG.proximity && !dot._applied) {
+          dot._applied = true;
+          gsap.killTweensOf(dot);
+          const pushX = (dot.cx - pr.x)*0.4 + vx*0.03;
+          const pushY = (dot.cy - pr.y)*0.4 + vy*0.03;
+          gsap.to(dot, {
+            xOffset: pushX, yOffset: pushY,
+            duration: 0.25, ease: 'power2.out',
+            onComplete() {
+              gsap.to(dot, { xOffset:0, yOffset:0, duration: CFG.returnDuration, ease:'elastic.out(1,0.75)' });
+              dot._applied = false;
+            }
+          });
+        }
+      }
+    }, 50);
+
+    const onClick = e => {
+      if (typeof gsap === 'undefined') return;
+      for (const dot of dots) {
+        const dist = Math.hypot(dot.cx - e.clientX, dot.cy - e.clientY);
+        if (dist < CFG.shockRadius && !dot._applied) {
+          dot._applied = true;
+          gsap.killTweensOf(dot);
+          const falloff = Math.max(0, 1 - dist/CFG.shockRadius);
+          const pushX = (dot.cx - e.clientX) * CFG.shockStrength * falloff;
+          const pushY = (dot.cy - e.clientY) * CFG.shockStrength * falloff;
+          gsap.to(dot, {
+            xOffset: pushX, yOffset: pushY,
+            duration: 0.2, ease: 'power3.out',
+            onComplete() {
+              gsap.to(dot, { xOffset:0, yOffset:0, duration: CFG.returnDuration, ease:'elastic.out(1,0.75)' });
+              dot._applied = false;
+            }
+          });
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', onMove, { passive:true });
+    window.addEventListener('click', onClick);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(buildGrid, 150);
+    }, { passive:true });
+
+    buildGrid();
+    draw();
+  })();
+  // ==============================================================
+  </script>
+
+
+  <script>
+  // ====== MagicRings Intro — Vanilla JS + Three.js ======
+  (function() {
+    if (typeof THREE === 'undefined') return;
+    const canvas = document.getElementById('loader-rings-canvas');
+    if (!canvas) return;
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-0.5,0.5,0.5,-0.5,0.1,10);
+    camera.position.z = 1;
+
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:false }); }
+    catch(e) { return; }
+    renderer.setClearColor(0x000000, 0);
+
+    const vs = `void main(){ gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
+    const fs = `
+      precision highp float;
+      uniform float uTime,uAttenuation,uLineThickness,uBaseRadius,uRadiusStep,uScaleRate;
+      uniform float uOpacity,uNoiseAmount,uRingGap,uFadeIn,uFadeOut;
+      uniform vec2  uResolution;
+      uniform vec3  uColor,uColorTwo;
+      uniform int   uRingCount;
+      const float HP=1.5707963, CYCLE=3.45;
+      float fade(float t){ return t<uFadeIn?smoothstep(0.0,uFadeIn,t):1.0-smoothstep(uFadeOut,CYCLE-0.2,t); }
+      float ring(vec2 p,float ri,float cut,float t0,float px){
+        float t=mod(uTime+t0,CYCLE), r=ri+t/CYCLE*uScaleRate;
+        float d=abs(length(p)-r);
+        float a=atan(abs(p.y),abs(p.x))/HP;
+        float th=max(1.0-a,0.5)*px*uLineThickness;
+        float h=(1.0-smoothstep(th,th*1.5,d))+1.0;
+        d+=pow(cut*a,3.0)*r;
+        return h*exp(-uAttenuation*d)*fade(t);
+      }
+      void main(){
+        float px=1.0/min(uResolution.x,uResolution.y);
+        vec2 p=(gl_FragCoord.xy-0.5*uResolution.xy)*px;
+        vec3 c=vec3(0.0);
+        float rcf=max(float(uRingCount)-1.0,1.0);
+        for(int i=0;i<10;i++){
+          if(i>=uRingCount) break;
+          float fi=float(i);
+          vec3 rc=mix(uColor,uColorTwo,fi/rcf);
+          c=mix(c,rc,vec3(ring(p,uBaseRadius+fi*uRadiusStep,pow(uRingGap,fi),i==0?0.0:2.95*fi,px)));
+        }
+        float n=fract(sin(dot(gl_FragCoord.xy+uTime*100.0,vec2(12.9898,78.233)))*43758.5453);
+        c+=(n-0.5)*uNoiseAmount;
+        gl_FragColor=vec4(c,max(c.r,max(c.g,c.b))*uOpacity);
+      }
+    `;
+
+    const uniforms = {
+      uTime:          {value:0},
+      uResolution:    {value:new THREE.Vector2()},
+      uColor:         {value:new THREE.Color('#3b82f6')},
+      uColorTwo:      {value:new THREE.Color('#818cf8')},
+      uRingCount:     {value:7},
+      uAttenuation:   {value:10},
+      uLineThickness: {value:2},
+      uBaseRadius:    {value:0.3},
+      uRadiusStep:    {value:0.1},
+      uScaleRate:     {value:0.1},
+      uOpacity:       {value:1},
+      uNoiseAmount:   {value:0.08},
+      uRingGap:       {value:1.5},
+      uFadeIn:        {value:0.7},
+      uFadeOut:       {value:0.5},
+    };
+
+    const mat  = new THREE.ShaderMaterial({vertexShader:vs,fragmentShader:fs,uniforms,transparent:true});
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1,1), mat);
+    scene.add(mesh);
+
+    function resize(){
+      const w=window.innerWidth, h=window.innerHeight, dpr=Math.min(window.devicePixelRatio,2);
+      renderer.setSize(w,h); renderer.setPixelRatio(dpr);
+      uniforms.uResolution.value.set(w*dpr,h*dpr);
+    }
+    resize();
+    window.addEventListener('resize', resize, {passive:true});
+
+    let raf;
+    function animate(t){
+      raf = requestAnimationFrame(animate);
+      uniforms.uTime.value = t * 0.001;
+      renderer.render(scene, camera);
+    }
+    raf = requestAnimationFrame(animate);
+
+    // Stop when loader is hidden
+    const loaderEl = document.getElementById('loader');
+    const obs = new MutationObserver(() => {
+      if (loaderEl && loaderEl.style.display === 'none') {
+        cancelAnimationFrame(raf);
+        renderer.dispose();
+        obs.disconnect();
+      }
+    });
+    if (loaderEl) obs.observe(loaderEl, {attributes:true, attributeFilter:['style']});
+  })();
+  // ====================================================
+  </script>
+  <!-- MODAL -->
+  <div class="modal-overlay" id="stamp-modal" onclick="closeStampModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3 id="modal-module-name">Modul</h3>
+      <div class="points" id="modal-points">0</div>
+      <div class="points-label">Total Stamp Diperoleh</div>
+      <button class="btn-primary" style="width: 100%" onclick="closeStampModal()">Tutup</button>
+    </div>
+  </div>
 </body>
 
 </html>
